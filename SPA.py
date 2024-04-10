@@ -8,16 +8,13 @@ Created on Fri Sep 29 09:08:25 2023
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
-from scipy.optimize import curve_fit, least_squares
-from scipy.signal import find_peaks, savgol_filter, convolve, convolve2d
-from scipy.fft import ifft2, fftshift, fft2, ifftshift
+from scipy.optimize import curve_fit
+from scipy.signal import savgol_filter, convolve2d
 from math import isclose
 import skimage.graph
-from skimage.io import imread, imshow
-from skimage.morphology import disk, rectangle
-from skimage.color import rgb2gray
-from skimage.transform import rotate
-from skimage.filters import rank, gaussian
+from skimage.io import imread
+from skimage.morphology import disk
+from skimage.filters import rank
 from skimage import util
 import scipy.ndimage as ndi
 import cv2
@@ -622,11 +619,11 @@ class SPA:
             x_path.append(path_length[max_index][i][1])
             y_path.append(path_length[max_index][i][0])
 
-        plt.figure()
+        plt.figure(figsize=(8,6))
         if self.show_plots:
             plt.plot(*in_point, "ro")
             plt.plot(*out_point, "ro")
-            plt.scatter(x_path[::100], y_path[::100], s=16, alpha=1, color="red")
+            plt.scatter(x_path[::100], y_path[::100], s=32, alpha=1, color="red")
             plt.xlabel("Width [a.u.]", fontsize=font_size)
             plt.ylabel("Height [a.u.]", fontsize=font_size)
             plt.xticks(fontsize=font_size)
@@ -676,14 +673,14 @@ class SPA:
         alpha_dB_raw = 10 * np.log10(np.exp(fit_parameters[1] * 10))
         alpha_dB_raw_variance = 10 * np.log10(np.exp(np.sqrt(fit_parameters_cov_var_matrix[1, 1]) * 10))
         if self.show_plots:
-            plt.figure()
+            plt.figure(figsize=(10,6))
             plt.plot(x_iqr, fit_outlier, color="#E69F00", linestyle="-", linewidth=3,
                      label=f"Fit to outlier corrected data\n {alpha_dB_outlier:.1f}$\\pm${alpha_dB_outlier_variance:.1f} dB/cm, R\u00b2: {r_squared_outlier:.2f}")  # ,
             plt.plot(x, fit_raw, color="g", linestyle="-", linewidth=3,
                      label=f"Fit to raw data\n {alpha_dB_raw:.1f}$\\pm${alpha_dB_raw_variance:.1f} dB/cm, R\u00b2: {r_squared_raw:.2f}")  # ,
             plt.scatter(x, y_raw, color="#0072B2", s=1.5, label="Raw data")
             plt.scatter(x_iqr, y_iqr, color="#000000", s=1.5, label="Outlier corrected data")
-            lgnd = plt.legend(fontsize=15, scatterpoints=1, frameon=False)
+            lgnd = plt.legend(fontsize=font_size, scatterpoints=1, frameon=False)
             lgnd.legendHandles[2]._sizes = [30]
             lgnd.legendHandles[2].set_alpha(1)
             lgnd.legendHandles[3]._sizes = [30]
