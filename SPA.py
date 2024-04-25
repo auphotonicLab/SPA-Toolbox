@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 """
 Created on Fri Sep 29 09:08:25 2023
@@ -473,6 +474,7 @@ class SPA:
 
         return x, y_raw
 
+
     def find_path(self, bw_image, start, end):
         # Converting the black-white image to a cost path matrix
         costs = np.where(bw_image == 1, 1, 10000)
@@ -480,34 +482,87 @@ class SPA:
                                                        geometric=True)
         return path, cost
 
-    def find_input_and_output(self, path):
+    def initialize(self):
+        # Define class attributes for click-related variables
+        self.first_click = None
+        self.second_click = None
+        self.click_count = 0
+        self.window_opened = False  # Flag to track if the window is opened
+
+    def reset(self):
+        # Reset click-related variables to their initial states
+        self.first_click = None
+        self.second_click = None
+        self.click_count = 0
+
+    def get_click_coordinates(self, event, x, y):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            if self.click_count == 0:
+                self.first_click = (x, y)
+                self.click_count += 1
+            elif self.click_count == 1:
+                self.second_click = (x, y)
+                self.click_count += 1
+
+            if self.click_count >= 2:
+                return (self.first_click, self.second_click)  # Return coordinates after both clicks
+
+    def run(self, image_path, scale_factor):
+        # Initialize class attributes
+        self.initialize()
+
+        # Load the image
+        image = cv2.imread(image_path)
+
+        # Resize the image based on the scale factor
+        if scale_factor != 1.0:
+            width = int(image.shape[1] * scale_factor)
+            height = int(image.shape[0] * scale_factor)
+            image = cv2.resize(image, (width, height))
+
+        # Display the image if the window is not already opened
+        if not self.window_opened:
+            cv2.imshow('Image', image)
+            self.window_opened = True
+
+        # Function to handle mouse events and store coordinates
+        def handle_mouse_event(event, x, y, flags, param):
+            self.get_click_coordinates(event, x, y)  # Call the actual method
+
+        # Set mouse callback function to handle events
+        cv2.setMouseCallback('Image', handle_mouse_event)
+
+        # Wait indefinitely for two mouse click events
+        while self.click_count < 2:
+            cv2.waitKey(1)
+
+        # Close the window after the second click event
+        cv2.destroyAllWindows()
+
+        # Process the click coordinates after both clicks
+        x1, y1 = self.first_click
+        x2, y2 = self.second_click
+
+        # Scale the coordinates based on the scale factor
+        x1_scaled = int(x1 / scale_factor)
+        y1_scaled = int(y1 / scale_factor)
+        x2_scaled = int(x2 / scale_factor)
+        y2_scaled = int(y2 / scale_factor)
+
+        # Construct input and output points
+        input_point = [x1_scaled, y1_scaled]
+        output_point = [x2_scaled, y2_scaled]
+
+        # Return the scaled coordinates of the first and second clicks
+        return input_point, output_point
+
+
+    def grey_image(self, path):
         # Determining the input/output facet
         image = util.img_as_float(imread(path))
         grey_image = image[:, :, 2]
 
-        indent_list = [0, 0.05, 0.9, 1]
-
-        input_indent_start = int(grey_image.shape[1] * indent_list[0])
-        input_indent_end = int(grey_image.shape[1] * indent_list[1])
-
-        output_indent_start = int(grey_image.shape[1] * indent_list[2])
-        output_indent_end = int(grey_image.shape[1] * indent_list[3])
-
-        input_index = grey_image[:, input_indent_start:input_indent_end] > 0.02
-
-        cy, cx = ndi.center_of_mass(input_index)
-
-        cx = cx + input_indent_start
-
-        input_point = (int(cx), int(cy))
-
-        output_index = grey_image[:, output_indent_start:output_indent_end] > 0.02
-        cy, cx = ndi.center_of_mass(output_index)
-        cx = grey_image.shape[1] - cx
-
-        output_point = (int(cx), int(cy))
-
-        return input_point, output_point, grey_image
+        return grey_image
 
     def um_per_pixel(self, point1, point2, distance):
         # calculating Euclidean distance
@@ -695,13 +750,13 @@ class SPA:
 
         return alpha_dB_outlier, alpha_dB_outlier_variance, r_squared_outlier, alpha_dB_raw, alpha_dB_raw_variance, r_squared_raw
 
-    def spiral_waveguide(self, image_directory, distance_um, parameter_optimize):
+    def spiral_waveguide(self, image_directory, distance_um, parameter_optimize,scale_factor):
         path = image_directory
-        in_point, out_point, grey_image = self.find_input_and_output(path)
+        grey_image = self.grey_image(path)
 
-        out_point = (out_point[0], out_point[1] + 210)  # (1886,1208)
-        in_point = (in_point[0], in_point[1] - 15)  # -80
-
+        in_point, out_point = self.run(image_directory, scale_factor=scale_factor)
+        print("Input coordinates: ", in_point)
+        print("Output coordinates: ", out_point)
         point1 = np.array((in_point[0], in_point[1]))
         point2 = np.array((in_point[0], out_point[1]))  # 1985
 
